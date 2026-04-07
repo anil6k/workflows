@@ -1,0 +1,40 @@
+name: Sync Kaggle Data
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows you to run it manually for testing
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Kaggle API
+        run: pip install kaggle
+
+      - name: Download Dataset
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          # Replace 'username/dataset-name' with your target dataset
+          kaggle datasets download -d zynicide/wine-reviews --unzip -p ./data
+          
+      - name: Commit and Push if data changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add ./data
+          git commit -m "Update Kaggle data" || echo "No changes to commit"
+          git push
