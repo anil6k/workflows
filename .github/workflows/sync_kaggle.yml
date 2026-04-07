@@ -1,0 +1,37 @@
+name: Kaggle Data Ingestion
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Runs every Monday at midnight (Incremental approach)
+  workflow_dispatch:   # Allows you to run it manually
+
+jobs:
+  ingest_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Kaggle CLI
+        run: pip install kaggle
+
+      - name: Download Dataset
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          # Replace 'user/dataset-name' with the actual Kaggle slug
+          kaggle datasets download -d zillow/zecon -p ./data --unzip
+
+      - name: Commit and Push Data
+        run: |
+          git config --global user.name "Data-Bot"
+          git config --global user.email "actions@github.com"
+          git add data/
+          git commit -m "Automated update: Ingested latest Kaggle data" || echo "No changes to commit"
+          git push
